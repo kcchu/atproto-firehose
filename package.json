@@ -43,6 +43,7 @@
     "cbor": "^9.0.0",
     "chalk": "^4",
     "commander": "^11.0.0",
+    "indent-string": "^4.0.0",
     "ws": "^8.13.0"
   },
   "optionalDependencies": {

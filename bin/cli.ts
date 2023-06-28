@@ -9,6 +9,7 @@ import {
 import { DidResolver } from '@atproto/identity'
 import chalk from 'chalk'
 import { program } from 'commander'
+import indentString from 'indent-string'
 
 import { RepoOp, subscribeRepos } from '../src/subscribeRepos'
 
@@ -52,96 +53,100 @@ program.parse()
 const printRepoOp = async (repoOp: RepoOp) => {
   let s = ''
 
-  s += chalk.yellow(`${await resolveDid(repoOp.repo)}\n`)
-
-  if (program.opts().verbose) {
-    s += chalk.gray(`Path: ${repoOp.path}\n`)
-    if (repoOp.payload) {
-      s += chalk.gray(`${JSON.stringify(repoOp.payload)}\n`)
-    }
-  }
+  s += `${await formatDid(repoOp.repo)}\n`
 
   if (repoOp.payload) {
     const payload = repoOp.payload
     switch (payload?.$type) {
       case 'app.bsky.feed.like':
-        s += chalk.gray(`likes ${payload.subject?.uri ?? '<unknown>'}\n`)
+        s += `    ${chalk.red('liked')} ${
+          payload.subject?.uri ?? '<unknown>'
+        }\n`
         break
       case 'app.bsky.feed.post':
         if (AppBskyFeedPost.isRecord(payload)) {
           if (payload.reply) {
+            let replyTo
             if (payload.reply.parent) {
-              s += chalk.gray(
-                `replying to ${payload.reply.parent.uri ?? '<unknown>'}\n`,
-              )
+              replyTo = payload.reply.parent.uri
             } else {
-              s += chalk.gray(
-                `replying to ${payload.reply.root?.uri ?? '<unknown>'}\n`,
-              )
+              replyTo = payload.reply.root?.uri
+            }
+            if (replyTo) {
+              s += chalk.gray(`    reply to ${replyTo}\n`)
             }
           }
-          s += chalk.white(`${payload.text || '<empty post>'}\n`)
+          s += `${indentString(payload.text || '<empty post>', 4)}\n`
           if (payload.embed) {
             if (AppBskyEmbedImages.isMain(payload.embed)) {
-              s += chalk.gray(`embeds ${payload.embed.images.length} images\n`)
+              s += chalk.gray(
+                `    embeded ${payload.embed.images.length} images\n`,
+              )
             } else if (AppBskyEmbedExternal.isMain(payload.embed)) {
               s += chalk.gray(
-                `embeds [${payload.embed.external.title}](${payload.embed.external.uri})\n`,
+                `    embeds [${payload.embed.external.title}](${payload.embed.external.uri})\n`,
               )
             } else if (AppBskyEmbedRecord.isMain(payload.embed)) {
-              s += chalk.gray(`quotes post ${payload.embed.record.uri}\n`)
+              s += chalk.gray(`    quoted post ${payload.embed.record.uri}\n`)
             } else {
-              s += chalk.gray(`embeds <unknown>\n`)
+              s += chalk.gray(`    embeded <unknown>\n`)
             }
           }
         } else {
-          s += chalk.gray(`<invalid payload>\n`)
+          s += chalk.bgRed(`    <invalid payload>\n`)
         }
         break
       case 'app.bsky.feed.repost':
-        s += chalk.gray(`reposts ${payload.subject?.uri ?? '<unknown>'}\n`)
+        s += `    ${chalk.green('reposted')} ${
+          payload.subject?.uri ?? chalk.bgRed('<unknown>')
+        }\n`
         break
       case 'app.bsky.graph.follow':
-        s += chalk.gray(
-          `follows ${
-            payload.subject ? await resolveDid(payload.subject) : '<unknown>'
-          }\n`,
-        )
+        s += `    ${chalk.blue('followed')} ${
+          payload.subject
+            ? await formatDid(payload.subject)
+            : chalk.bgRed('<unknown>')
+        }\n`
         break
       case 'app.bsky.actor.profile':
         if (repoOp.action == 'create') {
-          s += chalk.gray('creates profile\n')
+          s += chalk.cyan('    created profile\n')
         } else {
-          s += chalk.gray('updates profile\n')
+          s += chalk.cyan('    updated profile\n')
         }
         if (AppBskyActorProfile.isRecord(payload)) {
           if (payload.displayName) {
-            s += chalk.green(`${payload.displayName}\n`)
+            s += `${payload.displayName}\n`
           }
           if (payload.description) {
-            s += chalk.white(`${payload.description}\n`)
+            s += `${indentString(payload.description, 4)}\n`
           }
         }
         break
       default:
-        s += chalk.gray(`${repoOp.action} ${repoOp.path} ${payload.$type}\n`)
+        s += chalk.gray(
+          `    ${repoOp.action} ${repoOp.path} ${payload.$type}\n`,
+        )
     }
   } else {
-    s += chalk.gray(`${repoOp.action} ${repoOp.path}\n`)
+    s += chalk.gray(`    ${repoOp.action} ${repoOp.path}\n`)
   }
 
   console.log(s)
 }
 
-const resolveDid = async (did: string) => {
-  if (program.opts().noResolveDid) {
-    return did
+const formatDid = async (did: string) => {
+  let handle: string | undefined = undefined
+  if (!program.opts().noResolveDid) {
+    try {
+      const doc = await didResolver.resolve(did)
+      if (doc && doc.alsoKnownAs && doc.alsoKnownAs.length > 0) {
+        handle = doc.alsoKnownAs[0].replace('at://', '@')
+      }
+    } catch (e) {}
   }
-  try {
-    const doc = await didResolver.resolve(did)
-    if (doc && doc.alsoKnownAs && doc.alsoKnownAs.length > 0) {
-      return doc.alsoKnownAs[0].replace('at://', '@')
-    }
-  } catch (e) {}
-  return did
+  if (handle) {
+    return `${chalk.yellow(handle)} ${chalk.gray(`(${did})`)}`
+  }
+  return chalk.yellow(did)
 }
