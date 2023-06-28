@@ -1,7 +1,7 @@
 {
   "name": "atproto-event-streams",
   "version": "0.1.8",
-  "description": "",
+  "description": "AT Protocol Event Streams Client",
   "main": "dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "bin": {
@@ -18,7 +18,7 @@
     "prepare": "pnpm build"
   },
   "keywords": [],
-  "author": "",
+  "author": "Chu Ka-Cheong",
   "license": "MIT",
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",

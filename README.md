@@ -1,4 +1,4 @@
-# AT Protocol Event Stream Client
+# AT Protocol Event Streams Client
 
 A library for subscribing [AT Protocol](https://atproto.com) event streams and a CLI for streaming
 from Bluesky Social's firehose.
