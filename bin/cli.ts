@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {
+  AppBskyActorProfile,
   AppBskyEmbedExternal,
   AppBskyEmbedImages,
   AppBskyEmbedRecord,
@@ -64,7 +65,7 @@ const printRepoOp = async (repoOp: RepoOp) => {
     const payload = repoOp.payload
     switch (payload?.$type) {
       case 'app.bsky.feed.like':
-        s += chalk.gray(`likes ${repoOp.payload.subject?.uri ?? '<unknown>'}\n`)
+        s += chalk.gray(`likes ${payload.subject?.uri ?? '<unknown>'}\n`)
         break
       case 'app.bsky.feed.post':
         if (AppBskyFeedPost.isRecord(payload)) {
@@ -85,7 +86,7 @@ const printRepoOp = async (repoOp: RepoOp) => {
               s += chalk.gray(`embeds ${payload.embed.images.length} images\n`)
             } else if (AppBskyEmbedExternal.isMain(payload.embed)) {
               s += chalk.gray(
-                `embeds [${payload.embed.uri}](${payload.embed.title})\n`,
+                `embeds [${payload.embed.external.title}](${payload.embed.external.uri})\n`,
               )
             } else if (AppBskyEmbedRecord.isMain(payload.embed)) {
               s += chalk.gray(`quotes post ${payload.embed.record.uri}\n`)
@@ -98,12 +99,29 @@ const printRepoOp = async (repoOp: RepoOp) => {
         }
         break
       case 'app.bsky.feed.repost':
-        s += chalk.gray(
-          `reposts ${repoOp.payload.subject?.uri ?? '<unknown>'}\n`,
-        )
+        s += chalk.gray(`reposts ${payload.subject?.uri ?? '<unknown>'}\n`)
         break
       case 'app.bsky.graph.follow':
-        s += chalk.gray(`follows ${repoOp.payload.subject ?? '<unknown>'}\n`)
+        s += chalk.gray(
+          `follows ${
+            payload.subject ? await resolveDid(payload.subject) : '<unknown>'
+          }\n`,
+        )
+        break
+      case 'app.bsky.actor.profile':
+        if (repoOp.action == 'create') {
+          s += chalk.gray('creates profile\n')
+        } else {
+          s += chalk.gray('updates profile\n')
+        }
+        if (AppBskyActorProfile.isRecord(payload)) {
+          if (payload.displayName) {
+            s += chalk.green(`${payload.displayName}\n`)
+          }
+          if (payload.description) {
+            s += chalk.white(`${payload.description}\n`)
+          }
+        }
         break
       default:
         s += chalk.gray(`${repoOp.action} ${repoOp.path} ${payload.$type}\n`)
