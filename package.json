@@ -14,7 +14,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "af": "tsx bin/cli.ts",
     "build": "tsup-node bin/cli.ts src/index.ts --dts",
-    "clean": "rimraf ./dist"
+    "clean": "rimraf ./dist",
+    "prepare": "pnpm build"
   },
   "keywords": [],
   "author": "",
