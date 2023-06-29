@@ -4,24 +4,24 @@ import { decode as cborDecode } from '@ipld/dag-cbor'
 
 import { XrpcEventStreamClient } from './eventStream'
 
-export interface RepoOp {
-  repo: string
-  path: string
-  cid?: string
-  action: ComAtprotoSyncSubscribeRepos.RepoOp['action']
-  payload?: any
-}
+export { ComAtprotoSyncSubscribeRepos } from '@atproto/api'
+
+export type SubscribeReposMessage =
+  | ComAtprotoSyncSubscribeRepos.Commit
+  | ComAtprotoSyncSubscribeRepos.Handle
+  | ComAtprotoSyncSubscribeRepos.Info
+  | ComAtprotoSyncSubscribeRepos.Migrate
+  | ComAtprotoSyncSubscribeRepos.Tombstone
 
 export interface SubscribeRepoOptions {
   decodeRepoOps?: boolean
-  filter?: RepoOpsFilter
+  filter?: RepoOpsFilterFunc
 }
 
-export interface RepoOpsFilter {
-  repo?: string
-  action?: ComAtprotoSyncSubscribeRepos.RepoOp['action'][]
-  pathPrefix?: string
-}
+export type RepoOpsFilterFunc = (
+  message: ComAtprotoSyncSubscribeRepos.Commit,
+  repoOp: ComAtprotoSyncSubscribeRepos.RepoOp,
+) => boolean
 
 export const subscribeRepos = (
   serviceUri: string,
@@ -37,14 +37,8 @@ export const subscribeRepos = (
 const decoder = (options: SubscribeRepoOptions) => {
   return async (client: XrpcEventStreamClient, message: unknown) => {
     if (ComAtprotoSyncSubscribeRepos.isCommit(message)) {
-      if (
-        options.decodeRepoOps &&
-        (!options.filter?.repo || options.filter?.repo == message.repo)
-      ) {
+      if (options.decodeRepoOps) {
         const ops = await decodeOps(message, options.filter)
-        ops.forEach((op) => {
-          client.emit('repoOp', op)
-        })
       }
       return message
     } else if (ComAtprotoSyncSubscribeRepos.isHandle(message)) {
@@ -61,21 +55,11 @@ const decoder = (options: SubscribeRepoOptions) => {
 
 const decodeOps = async (
   message: ComAtprotoSyncSubscribeRepos.Commit,
-  filter: RepoOpsFilter | undefined,
-): Promise<RepoOp[]> => {
-  const decodedOps: RepoOp[] = []
+  filter: RepoOpsFilterFunc | undefined,
+): Promise<void> => {
   for (const op of message.ops) {
-    if (filter?.action && !(op.action in filter.action)) {
+    if (filter && !filter(message, op)) {
       break
-    }
-    if (filter?.pathPrefix && !op.path.startsWith(filter.pathPrefix)) {
-      break
-    }
-    const decodedOp: RepoOp = {
-      repo: message.repo,
-      action: op.action,
-      path: op.path,
-      cid: op.cid?.toString(),
     }
     if (op.action == 'create' || op.action == 'update') {
       const cr = await CarReader.fromBytes(message.blocks)
@@ -83,11 +67,9 @@ const decodeOps = async (
         const block = await cr.get(op.cid as any)
         if (block) {
           const payload = cborDecode(block.bytes)
-          decodedOp.payload = payload
+          op.payload = payload
         }
       }
     }
-    decodedOps.push(decodedOp)
   }
-  return decodedOps
 }

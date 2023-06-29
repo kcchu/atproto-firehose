@@ -11,7 +11,7 @@ import chalk from 'chalk'
 import { program } from 'commander'
 import indentString from 'indent-string'
 
-import { RepoOp, subscribeRepos } from '../src/subscribeRepos'
+import { ComAtprotoSyncSubscribeRepos, subscribeRepos } from '../src/index'
 
 const didResolver = new DidResolver({})
 
@@ -23,14 +23,22 @@ program
   .option('-p, --path <path>', 'filter repo ops by path prefix')
   .option('-r, --repo <repo>', "filter repo ops by repo name (i.e. user's DID)")
   .option('--no-resolve-did', 'do not resolve DID into handle')
-  .option('--no-repo-ops', 'do not print decoded repo ops')
+  .option('--no-repo-ops', 'do not print repo ops')
   .option('--print-messages', 'print raw messages')
   .option('--no-color', 'do not colorize output')
   .option('-v, --verbose', 'display raw information')
   .action((host, options) => {
-    const filter = {
-      action: options.action,
-      pathPrefix: options.path,
+    const filter = (
+      message: ComAtprotoSyncSubscribeRepos.Commit,
+      repoOp: ComAtprotoSyncSubscribeRepos.RepoOp,
+    ): boolean => {
+      if (options.action && repoOp.action != options.action) {
+        return false
+      }
+      if (options.path && !repoOp.path.startsWith(options.path)) {
+        return false
+      }
+      return true
     }
     const s = subscribeRepos(`wss://${host}`, {
       decodeRepoOps: !options.noRepoOps,
@@ -39,24 +47,32 @@ program
     s.on('error', (error) => {
       console.error(error)
     })
-    if (options.printMessages) {
-      s.on('message', (message) => {
-        console.log('Message:', message)
-      })
-    }
-    s.on('repoOp', (repoOp) => {
-      printRepoOp(repoOp)
+    s.on('close', () => {
+      console.log('closed')
+    })
+    s.on('message', (message) => {
+      if (options.printMessages) {
+        console.log('>', message)
+      }
+      if (!options.noRepoOps) {
+        if (ComAtprotoSyncSubscribeRepos.isCommit(message)) {
+          message.ops.forEach((op) => printRepoOp(message.repo, op))
+        }
+      }
     })
   })
 program.parse()
 
-const printRepoOp = async (repoOp: RepoOp) => {
+const printRepoOp = async (
+  repo: string,
+  repoOp: ComAtprotoSyncSubscribeRepos.RepoOp,
+) => {
   let s = ''
 
-  s += `${await formatDid(repoOp.repo)}\n`
+  s += `${await formatDid(repo)}\n`
 
   if (repoOp.payload) {
-    const payload = repoOp.payload
+    const payload = repoOp.payload as any
     switch (payload?.$type) {
       case 'app.bsky.feed.like':
         s += `    ${chalk.red('liked')} ${

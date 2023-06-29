@@ -3,6 +3,9 @@
 A library for subscribing [AT Protocol](https://atproto.com) event streams and a CLI for streaming
 from Bluesky Social's firehose.
 
+**Note:** This package is intended to be used with Node.js. Currently, it does not work in the
+*browser.
+
 ## Installation
 
 ```
@@ -23,19 +26,11 @@ pnpm add atproto-event-streams
 ## Usage example
 
 ```typescript
-import { subscribeRepos } from 'atproto-event-streams'
+import { subscribeRepos, SubscribeReposMessage } from 'atproto-event-streams'
 
-const client = subscribeRepos(`wss://bsky.social`, {
-  decodeRepoOps: true,
-  filter: {
-    pathPrefix: 'app.bsky.feed.post',
-  }
-})
-client.on('message', (m) => {
+const client = subscribeRepos(`wss://bsky.social`, { decodeRepoOps: true })
+client.on('message', (m: SubscribeReposMessage) => {
   console.log('Message:', message)
-})
-s.on('repoOp', (repoOp) => {
-  console.log(repoOp)
 })
 ```
 
