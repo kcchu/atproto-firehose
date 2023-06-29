@@ -67,87 +67,79 @@ const printRepoOp = async (
   repo: string,
   repoOp: ComAtprotoSyncSubscribeRepos.RepoOp,
 ) => {
-  let s = ''
-
-  s += `${await formatDid(repo)}\n`
-
-  if (repoOp.payload) {
-    const payload = repoOp.payload as any
-    switch (payload?.$type) {
-      case 'app.bsky.feed.like':
-        s += `    ${chalk.red('liked')} ${
-          payload.subject?.uri ?? '<unknown>'
-        }\n`
-        break
-      case 'app.bsky.feed.post':
-        if (AppBskyFeedPost.isRecord(payload)) {
-          if (payload.reply) {
-            let replyTo
-            if (payload.reply.parent) {
-              replyTo = payload.reply.parent.uri
-            } else {
-              replyTo = payload.reply.root?.uri
-            }
-            if (replyTo) {
-              s += chalk.gray(`    reply to ${replyTo}\n`)
-            }
-          }
-          s += `${indentString(payload.text || '<empty post>', 4)}\n`
-          if (payload.embed) {
-            if (AppBskyEmbedImages.isMain(payload.embed)) {
-              s += chalk.gray(
-                `    embeded ${payload.embed.images.length} images\n`,
-              )
-            } else if (AppBskyEmbedExternal.isMain(payload.embed)) {
-              s += chalk.gray(
-                `    embeds [${payload.embed.external.title}](${payload.embed.external.uri})\n`,
-              )
-            } else if (AppBskyEmbedRecord.isMain(payload.embed)) {
-              s += chalk.gray(`    quoted post ${payload.embed.record.uri}\n`)
-            } else {
-              s += chalk.gray(`    embeded <unknown>\n`)
-            }
-          }
-        } else {
-          s += chalk.bgRed(`    <invalid payload>\n`)
-        }
-        break
-      case 'app.bsky.feed.repost':
-        s += `    ${chalk.green('reposted')} ${
-          payload.subject?.uri ?? chalk.bgRed('<unknown>')
-        }\n`
-        break
-      case 'app.bsky.graph.follow':
-        s += `    ${chalk.blue('followed')} ${
-          payload.subject
-            ? await formatDid(payload.subject)
-            : chalk.bgRed('<unknown>')
-        }\n`
-        break
-      case 'app.bsky.actor.profile':
-        if (repoOp.action == 'create') {
-          s += chalk.cyan('    created profile\n')
-        } else {
-          s += chalk.cyan('    updated profile\n')
-        }
-        if (AppBskyActorProfile.isRecord(payload)) {
-          if (payload.displayName) {
-            s += `${payload.displayName}\n`
-          }
-          if (payload.description) {
-            s += `${indentString(payload.description, 4)}\n`
-          }
-        }
-        break
-      default:
-        s += chalk.gray(
-          `    ${repoOp.action} ${repoOp.path} ${payload.$type}\n`,
-        )
-    }
-  } else {
-    s += chalk.gray(`    ${repoOp.action} ${repoOp.path}\n`)
+  if (!repoOp.payload) {
+    return
   }
 
+  let s = `${await formatDid(repo)}\n`
+  const payload = repoOp.payload as any
+  switch (payload?.$type) {
+    case 'app.bsky.feed.like':
+      s += `    ${chalk.red('liked')} ${payload.subject?.uri ?? '<unknown>'}\n`
+      break
+    case 'app.bsky.feed.post':
+      if (AppBskyFeedPost.isRecord(payload)) {
+        if (payload.reply) {
+          let replyTo
+          if (payload.reply.parent) {
+            replyTo = payload.reply.parent.uri
+          } else {
+            replyTo = payload.reply.root?.uri
+          }
+          if (replyTo) {
+            s += chalk.gray(`    reply to ${replyTo}\n`)
+          }
+        }
+        s += `${indentString(payload.text || '<empty post>', 4)}\n`
+        if (payload.embed) {
+          if (AppBskyEmbedImages.isMain(payload.embed)) {
+            s += chalk.gray(
+              `    embeded ${payload.embed.images.length} images\n`,
+            )
+          } else if (AppBskyEmbedExternal.isMain(payload.embed)) {
+            s += chalk.gray(
+              `    embeds [${payload.embed.external.title}](${payload.embed.external.uri})\n`,
+            )
+          } else if (AppBskyEmbedRecord.isMain(payload.embed)) {
+            s += chalk.gray(`    quoted post ${payload.embed.record.uri}\n`)
+          } else {
+            s += chalk.gray(`    embeded <unknown>\n`)
+          }
+        }
+      } else {
+        s += chalk.bgRed(`    <invalid payload>\n`)
+      }
+      break
+    case 'app.bsky.feed.repost':
+      s += `    ${chalk.green('reposted')} ${
+        payload.subject?.uri ?? chalk.bgRed('<unknown>')
+      }\n`
+      break
+    case 'app.bsky.graph.follow':
+      s += `    ${chalk.blue('followed')} ${
+        payload.subject
+          ? await formatDid(payload.subject)
+          : chalk.bgRed('<unknown>')
+      }\n`
+      break
+    case 'app.bsky.actor.profile':
+      if (repoOp.action == 'create') {
+        s += chalk.cyan('    created profile\n')
+      } else {
+        s += chalk.cyan('    updated profile\n')
+      }
+      if (AppBskyActorProfile.isRecord(payload)) {
+        if (payload.displayName) {
+          s += `${payload.displayName}\n`
+        }
+        if (payload.description) {
+          s += `${indentString(payload.description, 4)}\n`
+        }
+      }
+      break
+    default:
+      s += chalk.gray(`    ${repoOp.action} ${repoOp.path} ${payload.$type}\n`)
+  }
   console.log(s)
 }
 

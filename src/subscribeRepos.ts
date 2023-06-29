@@ -59,7 +59,7 @@ const decodeOps = async (
 ): Promise<void> => {
   for (const op of message.ops) {
     if (filter && !filter(message, op)) {
-      break
+      continue
     }
     if (op.action == 'create' || op.action == 'update') {
       const cr = await CarReader.fromBytes(message.blocks)
