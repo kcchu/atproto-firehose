@@ -38,7 +38,7 @@ const decoder = (options: SubscribeRepoOptions) => {
   return async (client: XrpcEventStreamClient, message: unknown) => {
     if (ComAtprotoSyncSubscribeRepos.isCommit(message)) {
       if (options.decodeRepoOps) {
-        const ops = await decodeOps(message, options.filter)
+        await decodeOps(message, options.filter)
       }
       return message
     } else if (ComAtprotoSyncSubscribeRepos.isHandle(message)) {

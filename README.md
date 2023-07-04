@@ -1,36 +1,44 @@
-# AT Protocol Event Streams Client
+# AT Protocol Event Stream Client
 
-A library for subscribing [AT Protocol](https://atproto.com) event streams and a CLI for streaming
-from Bluesky Social's firehose.
+A library for subscribing to [AT Protocol](https://atproto.com) Event Streams (aka Firehose) and a
+CLI for streaming Bluesky Social events.
 
 **Note:** This package is intended to be used with Node.js. Currently, it does not work in the
-*browser.
+browser.
 
 ## Installation
 
 ```
-npm install atproto-event-streams
+npm install atproto-firehose
 ```
 
 or
 
 ```
-yarn add atproto-event-streams
+yarn add atproto-firehose
 ```
 or
 
 ```
-pnpm add atproto-event-streams
+pnpm add atproto-firehose
 ```
 
 ## Usage example
 
 ```typescript
-import { subscribeRepos, SubscribeReposMessage } from 'atproto-event-streams'
+import {
+  ComAtprotoSyncSubscribeRepos,
+  SubscribeReposMessage,
+  subscribeRepos,
+} from 'atproto-firehose'
 
 const client = subscribeRepos(`wss://bsky.social`, { decodeRepoOps: true })
 client.on('message', (m: SubscribeReposMessage) => {
-  console.log('Message:', message)
+  if (ComAtprotoSyncSubscribeRepos.isCommit(m)) {
+    m.ops.forEach((op) => {
+      console.log(op.payload)
+    })
+  }
 })
 ```
 
@@ -39,7 +47,7 @@ client.on('message', (m: SubscribeReposMessage) => {
 This project also provides a CLI tool for streaming from Bluesky Social's firehose.
 
 ```
-npx atproto-event-streams bsky.social
+npx atproto-firehose bsky.social
 ```
 
 <img src="screencast.svg" alt="Screencast">
@@ -47,26 +55,30 @@ npx atproto-event-streams bsky.social
 List posts:
 
 ```
-npx atproto-event-streams bsky.social -p app.bsky.feed.post
+npx atproto-firehose bsky.social -p app.bsky.feed.post
 ```
 
 List likes:
 
 ```
-npx atproto-event-streams bsky.social -p app.bsky.feed.like
+npx atproto-firehose bsky.social -p app.bsky.feed.like
 ```
 
 List follows:
 
 ```
-npx atproto-event-streams bsky.social -p app.bsky.graph.follow
+npx atproto-firehose bsky.social -p app.bsky.graph.follow
 ```
 
 List profile changes:
 
 ```
-npx atproto-event-streams bsky.social -p app.bsky.actor.profile
+npx atproto-firehose bsky.social -p app.bsky.actor.profile
 ```
+
+## Author
+
+[@kcchu.xyz](https://kcchu.xyz)
 
 ## License
 
