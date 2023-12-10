@@ -32,7 +32,7 @@ import {
   subscribeRepos,
 } from 'atproto-firehose'
 
-const client = subscribeRepos(`wss://bsky.social`, { decodeRepoOps: true })
+const client = subscribeRepos(`wss://bsky.network`, { decodeRepoOps: true })
 client.on('message', (m: SubscribeReposMessage) => {
   if (ComAtprotoSyncSubscribeRepos.isCommit(m)) {
     m.ops.forEach((op) => {
@@ -47,7 +47,7 @@ client.on('message', (m: SubscribeReposMessage) => {
 This project also provides a CLI tool for streaming from Bluesky Social's firehose.
 
 ```
-npx atproto-firehose bsky.social
+npx atproto-firehose bsky.network
 ```
 
 <img src="screencast.svg" alt="Screencast">
@@ -55,25 +55,25 @@ npx atproto-firehose bsky.social
 List posts:
 
 ```
-npx atproto-firehose bsky.social -p app.bsky.feed.post
+npx atproto-firehose bsky.network -p app.bsky.feed.post
 ```
 
 List likes:
 
 ```
-npx atproto-firehose bsky.social -p app.bsky.feed.like
+npx atproto-firehose bsky.network -p app.bsky.feed.like
 ```
 
 List follows:
 
 ```
-npx atproto-firehose bsky.social -p app.bsky.graph.follow
+npx atproto-firehose bsky.network -p app.bsky.graph.follow
 ```
 
 List profile changes:
 
 ```
-npx atproto-firehose bsky.social -p app.bsky.actor.profile
+npx atproto-firehose bsky.network -p app.bsky.actor.profile
 ```
 
 ## Author
